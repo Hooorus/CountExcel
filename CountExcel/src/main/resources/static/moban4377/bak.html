@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>快速计算综测互评</title>
+
+  <link rel="icon" href="img/icon.png" type="image/x-icon">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+  <!-- Font -->
+  <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
+  <!-- Slicknav -->
+  <link rel="stylesheet" type="text/css" href="css/slicknav.css">
+  <!-- Owl carousel -->
+  <link rel="stylesheet" type="text/css" href="css/owl.carousel.css">
+  <link rel="stylesheet" type="text/css" href="css/owl.theme.css">
+  <!-- Animate -->
+  <link rel="stylesheet" type="text/css" href="css/animate.css">
+  <!-- Main Style -->
+  <link rel="stylesheet" type="text/css" href="css/main.css">
+  <!-- Extras Style -->
+  <link rel="stylesheet" type="text/css" href="css/extras.css">
+  <!-- Responsive Style -->
+  <link rel="stylesheet" type="text/css" href="css/responsive.css">
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <link rel="stylesheet" type="text/css" href="element-ui/index.css">
+</head>
+<body>
+<div class="app" id="app">
+  <p>请输入班级人数</p>
+  <input type="number" v-model="nums"/>
+  <p>请输入需要计算的第一个同学所在的行数</p>
+  <input type="number" v-model="heads"/>
+  <br>
+  <button @click="add">保存人数与行数</button>
+  <p></p>
+  <input type="file" @change="getDetail"/>
+  <!--    <el-upload class="upload-demo" action="https://jsonplaceholder.typicode.com/posts/"-->
+  <!--               :on-preview="handlePreview" :on-remove="handleRemove" :before-remove="beforeRemove"-->
+  <!--               multiple :limit="1" :on-exceed="handleExceed" :file-list="fileList">-->
+  <!--        <el-button size="small" type="primary">点击上传</el-button>-->
+  <!--        <div slot="tip" class="el-upload__tip">创建你班级人数的sheet，然后将班级内的所有excel表格合并到一个文件内提交 | 只能提交excel文件</div>-->
+  <!--    </el-upload>-->
+  <h4 :data="result">{{result}}</h4>
+</div>
+<!-- Header Area wrapper Starts -->
+<script src="axios/axios.min.js"></script>
+<script src="vue/vue.js"></script>
+<script src="js/jquery-min.js"></script>
+<script src="js/popper.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/owl.carousel.min.js"></script>
+<script src="js/jquery.mixitup.js"></script>
+<script src="js/jquery.countTo.js"></script>
+<script src="js/jquery.nav.js"></script>
+<script src="js/scrolling-nav.js"></script>
+<script src="js/jquery.easing.min.js"></script>
+<script src="js/jquery.slicknav.js"></script>
+<script src="js/form-validator.min.js"></script>
+<script src="js/contact-form-script.js"></script>
+<script src="js/main.js"></script>
+<script src="element-ui/index.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      result: '待输出',
+      nums1: 0,
+      heads1: 0,
+      nums: 0,
+      heads: 0,
+
+    },
+    methods: {
+      add() {
+        console.log(this.nums)
+        console.log(this.heads)
+        if (this.nums != null && this.heads != null) {
+          this.nums1 = this.nums
+          this.heads1 = this.heads
+        }
+      },
+      getDetail(event) {
+        var _this = this;
+        const file = event.target.files[0]
+        let formData = new FormData()
+        formData.append('file', file)
+        axios.post('http://localhost:8088/upload/' + this.nums1 + '/' + this.heads1, formData,
+                {'Content-type': 'multipart/form-data'})
+                .then((res) => {
+                  _this.result = res.data;
+                  console.log(res.data)
+                })
+      }
+    }
+  })
+</script>
+</body>
+</html>

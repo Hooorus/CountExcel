@@ -1,0 +1,21 @@
+# 应用服务 WEB 访问端口
+server:
+  port: 8081
+# 应用名称
+spring:
+  application:
+    name: CountExcel
+  # 数据库驱动：
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 数据源名称
+    name: defaultDataSource
+    # 数据库连接地址
+    url: jdbc:mysql://localhost:3306/heima?serverTimezone=UTC&characterEncoding=utf8&useSSL=false
+    # 数据库用户名&密码：
+    username: root
+    password: sylym321
+#  servlet:
+#    multipart:
+#      location: C:\Users\Lenovo\Desktop\333
+debug: false

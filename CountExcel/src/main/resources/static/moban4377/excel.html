@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>快速计算综测互评</title>
+
+    <link rel="icon" href="img/icon.png" type="image/x-icon">
+
+    <link rel="stylesheet" href="element-ui/index.css">
+</head>
+<style>
+
+    .middle {
+        text-align: center;
+        width: 33%;
+    }
+</style>
+<body>
+<div class="app" id="app">
+    <el-container>
+        <el-header style="text-align: center;font-weight: bolder;font-size: x-large;">快速计算班级综测互评分</el-header>
+        <el-container>
+            <el-aside width="30%">
+                <div class="demo-image__lazy">
+                    <el-image style="width: 450px" v-for="url in urls" :key="url" :src="url" lazy></el-image>
+                </div>
+            </el-aside>
+            <el-container class="middle">
+                <el-main>
+                    <div>请参照左侧实例进行编辑：创建你班级人数量的sheet，然后将每个人的excel表格合并到一个文件内分多个sheet提交</div>
+                    <br>
+                    <div>
+                        <div>
+                            <el-input placeholder="37" type="number" v-model="class_num_temp" clearable>
+                                <template slot="prepend">请输入班级人数：即sheet表数</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="5" type="number" v-model="index_row_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的序号所在的行号</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="A" type="text" v-model="index_col_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的序号所在的列号</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="5" type="number" v-model="name_row_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的姓名所在的行号</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="B" type="text" v-model="name_col_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的姓名所在的列号</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="5" type="number" v-model="score_row_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的评分所在的行号</template>
+                            </el-input>
+                        </div>
+                        <div>
+                            <el-input placeholder="F" type="text" v-model="score_col_temp"
+                                      clearable>
+                                <template slot="prepend">第一个同学的评分所在的列号</template>
+                            </el-input>
+                        </div>
+                        <br>
+                        <br>
+                        <div>
+                            <el-checkbox v-model="exclude_up_temp" @change="time_warning">去除个人评分最大值</el-checkbox>
+                            <el-checkbox v-model="self_miss_temp" @change="format_warning">忽略个人自评</el-checkbox>
+                            <el-checkbox v-model="exclude_dn_temp" @change="time_warning">去除个人评分最小值</el-checkbox>
+                        </div>
+                        <br>
+                    </div>
+                    <el-divider></el-divider>
+                    <el-button id="save" type="primary" icon="el-icon-success" @click="save">保存记录
+                    </el-button>
+                    <el-upload action="http://47.98.168.42:8081/upload" :limit="1"
+                               :file-list="formFileList"
+                               :http-request="handleUploadForm"
+                               :on-exceed="formHandleExceed" :on-remove="formHandleRemove"
+                               :before-upload="beforeUploadForm"
+                               accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                        <br>
+                        <el-button id="upload" type="primary" icon="el-icon-upload">上传表格</el-button>
+                    </el-upload>
+                </el-main>
+            </el-container>
+            <el-aside width="33%">
+                <p>输出结果顺序即为班级序号的顺序，复制到excel表格填充即可完成统计</p>
+                <el-divider></el-divider>
+                <h4 :data="result">{{result}}</h4>
+            </el-aside>
+        </el-container>
+    </el-container>
+</div>
+<!-- Header Area wrapper Starts -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="vue/vue.js"></script>
+<script src="element-ui/index.js"></script>
+<script src="axios/axios.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                result: '暂无数据',
+                class_num: 0,
+                index_row: 0,
+                index_col: "A",
+                name_row: 0,
+                name_col: "B",
+                score_row: 0,
+                score_col: "F",
+                exclude_up: false,
+                exclude_dn: false,
+                self_miss: false,
+                class_num_temp: null,
+                index_row_temp: null,
+                index_col_temp: null,
+                name_row_temp: null,
+                name_col_temp: null,
+                score_row_temp: null,
+                score_col_temp: null,
+                exclude_up_temp: false,
+                exclude_dn_temp: false,
+                self_miss_temp: false,
+                formMaxSize: 10, // 上传文件大小
+                formFileList: [], // 显示上传文件
+                uploadFormFileList: [], // 确定上传文件
+                value1: 0,
+                urls: [
+                    'img/example.png',
+                ],
+            }
+        },
+        methods: {
+            format_warning() {
+                this.$notify({
+                    title: 'excel格式注意',
+                    message: '若选择忽略个人自评，则每张互评表的自评人的评分需改为0！若不忽略个人自评，则无需改为0。',
+                    duration: 0,
+                    type: 'warning'
+                });
+            },
+            time_warning() {
+                this.$notify({
+                    title: '计算时间较长',
+                    message: '选中此选项所需计算的时间较长，大约为35人（一个班）/8min',
+                    duration: 5000,
+                    type: 'warning'
+                });
+            },
+            // 开始上传前验证
+            beforeUploadForm(file) {
+                // 验证文件大小
+                if (file.size / 1024 / 1024 > this.formMaxSize) {
+                    this.$notify({
+                        title: '警告',
+                        message: `上传文件大小不能超过${this.formMaxSize}M!`,
+                        duration: 0,
+                        type: 'warning'
+                    });
+                    return false
+                }
+                // 中文乱码处理
+                if (file.raw) {
+                    let reader = new FileReader() // 读取文件内容
+                    reader.readAsText(file.raw, 'gb2312') // 防止中文乱码问题，不加reader.onload方法都不会触发
+                    reader.onload = function (e) {
+                        this.contentHtml = e.target.result // txt文本内容，接下来就可以对其进行校验处理了
+                    }
+                }
+                // 验证文件类型
+                var testmsg = file.name.substring(file.name.lastIndexOf('.') + 1)
+                const extension = testmsg === 'xlsx' || testmsg === 'xls' || testmsg === 'csv'
+                if (!extension) {
+                    this.$notify({
+                        title: '警告',
+                        message: '上传文件只能是xlsx/xls/csv格式!',
+                        type: 'warning'
+                    })
+                }
+                return extension
+            },
+            // 移除上传列表中文件
+            formHandleRemove(file, formFileList) {
+                let thiz = this
+                for (let i = 0; i < thiz.uploadFormFileList.length; i++) {
+                    if (thiz.uploadFormFileList[i].name === file.name) {
+                        thiz.uploadFormFileList.splice(i, 1)
+                        break
+                    }
+                }
+            },
+            // 允许上传文件个数验证
+            formHandleExceed(files, formFileList) {
+                this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + formFileList.length} 个文件`)
+            },
+            // 上传文件
+            handleUploadForm(param) {
+                if (this.class_num_temp == null ||
+                    this.index_row_temp == null ||
+                    this.index_col_temp == null ||
+                    this.name_row_temp == null ||
+                    this.name_col_temp == null ||
+                    this.score_row_temp == null ||
+                    this.score_col_temp == null ||
+                    this.class_num_temp <= 0 ||
+                    this.index_row_temp <= 0 ||
+                    this.index_col_temp <= 0 ||
+                    this.name_row_temp <= 0 ||
+                    this.name_col_temp <= 0 ||
+                    this.score_row_temp <= 0 ||
+                    this.score_col_temp <= 0) {
+                    this.$notify({
+                        title: '警告',
+                        message: '请输入正确的人数与行数',
+                        duration: 0,
+                        type: 'error'
+                    });
+                } else {
+                    var _this = this;
+                    let formData = new FormData()
+                    let loading = _this.$loading({
+                        lock: true,
+                        text: '计算中，请稍候...',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(26,52,56,0.7)'
+                    })
+                    formData.append('file', param.file)
+                    formData.append('class_num', this.class_num)
+                    formData.append('index_row', this.index_row)
+                    formData.append('index_col', this.index_col)
+                    formData.append('name_row', this.name_row)
+                    formData.append('name_col', this.name_col)
+                    formData.append('score_row', this.score_row)
+                    formData.append('score_col', this.score_col)
+                    formData.append('exclude_up', this.exclude_up)
+                    formData.append('exclude_dn', this.exclude_dn)
+                    formData.append('self_miss', this.self_miss)
+                    axios.post('http://47.98.168.42:8081/comp_survey/upload', formData, {
+                        headers: {
+                            'Content-type': 'multipart/form-data',
+                            'Access-Control-Allow-Methods': '*',
+                            'Access-Control-Allow-Headers': '*',
+                            'Access-Control-Allow-Origin': '*'
+                        }
+                    })
+                        .then((res) => {
+                            if (res.data.length === 0) {
+                                _this.$notify({
+                                    title: '计算失败',
+                                    message: '表格计算失败！',
+                                    type: 'error',
+                                    duration: 5000,
+                                })
+                                _this.formFileList = []
+                                _this.uploadFormFileList = []
+                                loading.close()
+                                _this.result = res.data;
+                                console.log(res.data)
+                            } else {
+                                // for (let i = 1; i <= _this.class_num; i++) {
+                                //     _this.lists.add(res.data.slice(1+(i-1)*24,))
+                                // }
+                                _this.$notify({
+                                    title: '计算成功',
+                                    message: '表格计算成功！',
+                                    type: 'success',
+                                    duration: 5000,
+                                })
+                                _this.formFileList = []
+                                _this.uploadFormFileList = []
+                                loading.close()
+                                _this.result = res.data
+                            }
+                        })
+                }
+            },
+            save() {
+                if (this.class_num_temp != null &&
+                    this.index_row_temp != null &&
+                    this.index_col_temp != null &&
+                    this.name_row_temp != null &&
+                    this.name_col_temp != null &&
+                    this.score_row_temp != null &&
+                    this.score_col_temp != null &&
+                    this.class_num_temp > 0 &&
+                    this.index_row_temp > 0 &&
+                    this.index_col_temp !== " " &&
+                    this.name_row_temp > 0 &&
+                    this.name_col_temp !== " " &&
+                    this.score_row_temp > 0 &&
+                    this.score_col_temp !== " ") {
+
+                    this.class_num = this.class_num_temp
+                    this.index_row = this.index_row_temp
+                    this.index_col = this.index_col_temp
+                    this.name_row = this.name_row_temp
+                    this.name_col = this.name_col_temp
+                    this.score_row = this.score_row_temp
+                    this.score_col = this.score_col_temp
+                    this.exclude_up = this.exclude_up_temp
+                    this.exclude_dn = this.exclude_dn_temp
+                    this.self_miss = this.self_miss_temp
+
+                    this.$notify({
+                        title: '提示',
+                        message: '保存成功',
+                        duration: 3000,
+                        type: 'success'
+                    });
+                } else {
+                    this.$notify({
+                        title: '警告',
+                        message: '请输入正确的数据',
+                        duration: 0,
+                        type: 'error'
+                    });
+                }
+            }
+        }
+    })
+</script>
+</body>
+</html>
